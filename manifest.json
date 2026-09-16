@@ -2,7 +2,7 @@
   "name": "AI Assistant",
   "id": "ai-assistant",
   "manifestVersion": 1,
-  "version": "1.8.0",
+  "version": "1.8.1",
   "minSupVersion": "13.0.0",
   "description": "AI assistant (OpenAI, Anthropic Claude, or Google Gemini) that can manage your tasks, projects, and tags via natural language.",
   "author": "Community",
