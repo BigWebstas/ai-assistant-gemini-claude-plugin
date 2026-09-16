@@ -21,9 +21,11 @@ Super Productivity plugin (manifest v1) that provides an AI chat panel for task 
 
 **Data flow:**
 1. `sendMessage()` appends user message + `buildContext()` snapshot to `messages[]`
-2. `callOpenAI()` sends full conversation + tool definitions to the model
+2. `callModel()` dispatches to `callOpenAI()`, `callClaude()`, or `callGemini()` based on `config.provider`, each sending the full conversation + tool definitions to its API and normalizing the reply back to the OpenAI-style `{choices:[{message:{content,tool_calls}}]}` shape
 3. If the model returns `tool_calls`, `executeTool()` dispatches to matching `PluginAPI` calls, results appended as tool messages, loop continues (max 5 rounds)
 4. Final text response rendered via custom `renderMarkdown()` and displayed
+
+**Multi-provider:** `messages[]` is always kept in OpenAI-style internal format (roles `user`/`assistant`/`tool`, `tool_calls`, `tool_call_id`) regardless of active provider — it's what gets persisted. `toAnthropicMessages()` / `toGeminiContents()` convert that internal format to each provider's wire format on the way out; `callClaude()` / `callGemini()` convert the response back on the way in. `transformSchemaForGemini()` uppercases JSON Schema `type` values for Gemini's function-declaration format. Provider defaults (base URL, model) live in `PROVIDER_DEFAULTS`.
 
 **Persistence:** Config and conversation (last 50 messages) are stored via `PluginAPI.loadSyncedData()` / `PluginAPI.persistDataSynced()` under keys `ai-assistant-config` and `ai-assistant-conversation`.
 

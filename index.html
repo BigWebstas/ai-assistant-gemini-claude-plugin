@@ -25,13 +25,13 @@
       height: 100vh; display: flex; flex-direction: column; overflow: hidden;
     }
     .header {
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex; align-items: center; justify-content: flex-start; gap: 4px;
       padding: 8px 12px; border-bottom: 1px solid var(--chat-border);
       background: var(--chat-surface); flex-shrink: 0; position: relative;
     }
-    .header-title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
-    .header-title svg { width: 18px; height: 18px; color: var(--chat-primary); }
-    .header-actions { display: flex; gap: 4px; }
+    .header-title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .header-title svg { width: 18px; height: 18px; color: var(--chat-primary); flex-shrink: 0; }
+    .header-actions { display: flex; gap: 4px; order: -1; }
     .header-actions button {
       background: none; border: none; color: var(--chat-text-muted);
       cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 12px;
@@ -182,6 +182,29 @@
     .btn-cancel { background: var(--chat-bg); color: var(--chat-text); border: 1px solid var(--chat-border) !important; }
     .btn-save { background: var(--chat-primary); color: #fff; }
     .model-info { font-size: 11px; color: var(--chat-text-muted); margin-top: 2px; }
+    .model-row { display: flex; gap: 6px; }
+    .model-input-wrap { position: relative; flex: 1; min-width: 0; }
+    .model-input-wrap input { width: 100%; }
+    .model-row button {
+      flex-shrink: 0; width: 34px; background: var(--chat-bg);
+      border: 1px solid var(--chat-border); border-radius: 6px;
+      color: var(--chat-text); font-size: 14px; cursor: pointer;
+    }
+    .model-row button:hover { border-color: var(--chat-primary); color: var(--chat-primary); }
+    .model-row button:disabled { opacity: 0.5; cursor: default; }
+    .model-dropdown {
+      position: fixed; z-index: 101;
+      overflow-y: auto;
+      background: var(--chat-bg); border: 1px solid var(--chat-border);
+      border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .model-dropdown.hidden { display: none; }
+    .model-dropdown-item {
+      padding: 6px 10px; font-size: 12px; cursor: pointer;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .model-dropdown-item:hover { background: rgba(255,255,255,0.06); }
+    .model-dropdown-empty { padding: 6px 10px; font-size: 12px; color: var(--chat-text-muted); }
 
     /* Conversation selector */
     .conv-selector {
@@ -245,11 +268,8 @@
 <body>
   <div class="header">
     <div class="header-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/>
-        <rect x="4" y="8" width="16" height="12" rx="3"/>
-        <circle cx="9" cy="14" r="1.5" fill="currentColor"/>
-        <circle cx="15" cy="14" r="1.5" fill="currentColor"/>
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 9V7c0-1.1-.9-2-2-2h-3c0-1.66-1.34-3-3-3S9 3.34 9 5H6c-1.1 0-2 .9-2 2v2c-1.66 0-3 1.34-3 3s1.34 3 3 3v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4c1.66 0 3-1.34 3-3s-1.34-3-3-3zm-2 10H6V7h12v12zm-9-6c-.83 0-1.5-.67-1.5-1.5S8.17 10 9 10s1.5.67 1.5 1.5S9.83 13 9 13zm7.5-1.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5.67-1.5 1.5-1.5 1.5.67 1.5 1.5zM8 15h8v2H8v-2z"/>
       </svg>
       <button id="conv-selector" class="conv-selector" title="Switch conversation">
         <span id="conv-selector-title">AI Assistant</span>
@@ -279,17 +299,31 @@
     <div class="settings-panel">
       <h3>⚙️ AI Assistant Settings</h3>
       <div class="settings-field">
+        <label>Provider</label>
+        <select id="cfg-provider">
+          <option value="openai">OpenAI (compatible)</option>
+          <option value="claude">Anthropic Claude</option>
+          <option value="gemini">Google Gemini</option>
+        </select>
+      </div>
+      <div class="settings-field">
         <label>API Key *</label>
-        <input type="password" id="cfg-apiKey" placeholder="sk-..." />
+        <input type="password" id="cfg-apiKey" placeholder="Enter your API key" />
       </div>
       <div class="settings-field">
         <label>Base URL</label>
         <input type="text" id="cfg-baseUrl" placeholder="https://api.openai.com/v1" />
-        <div class="model-info">OpenAI-compatible endpoint (include /v1 if needed)</div>
+        <div class="model-info" id="baseurl-hint">OpenAI-compatible endpoint (include /v1 if needed)</div>
       </div>
       <div class="settings-field">
         <label>Model</label>
-        <input type="text" id="cfg-model" placeholder="gpt-4o" />
+        <div class="model-row">
+          <div class="model-input-wrap">
+            <input type="text" id="cfg-model" placeholder="gpt-4o" autocomplete="off" />
+          </div>
+          <button type="button" id="fetch-models-btn" title="Fetch latest models from provider">↻</button>
+        </div>
+        <div class="model-info" id="model-hint">&nbsp;</div>
       </div>
       <div class="settings-field">
         <label>Max Tokens</label>
@@ -304,6 +338,7 @@
         <button class="btn-save" id="settings-save">Save</button>
       </div>
     </div>
+    <div id="model-dropdown" class="model-dropdown hidden"></div>
   </div>
 
   <script>
@@ -524,12 +559,131 @@
     }
 
     // ==================== SETTINGS UI ====================
+    var PROVIDER_DEFAULTS = {
+      openai: { baseUrl:'https://api.openai.com/v1', model:'gpt-4o', hint:'OpenAI-compatible endpoint (include /v1 if needed)' },
+      claude: { baseUrl:'https://api.anthropic.com', model:'claude-sonnet-5', hint:'Anthropic Messages API endpoint' },
+      gemini: { baseUrl:'https://generativelanguage.googleapis.com/v1beta', model:'gemini-2.5-flash', hint:'Google Generative Language API endpoint' }
+    };
+
+    function applyProviderDefaults(provider) {
+      var d = PROVIDER_DEFAULTS[provider] || PROVIDER_DEFAULTS.openai;
+      document.getElementById('cfg-baseUrl').value = d.baseUrl;
+      document.getElementById('cfg-model').value = d.model;
+      document.getElementById('baseurl-hint').textContent = d.hint;
+      fetchedModels = [];
+      hideModelDropdown();
+      document.getElementById('model-hint').innerHTML = '&nbsp;';
+    }
+
+    // ==================== MODEL PICKER DROPDOWN ====================
+    var fetchedModels = [];
+
+    function hideModelDropdown() {
+      document.getElementById('model-dropdown').classList.add('hidden');
+    }
+
+    function renderModelDropdown(filterText) {
+      var dd = document.getElementById('model-dropdown');
+      if (!fetchedModels.length) { hideModelDropdown(); return; }
+      var q = (filterText || '').toLowerCase();
+      var matches = q ? fetchedModels.filter(function (id) { return id.toLowerCase().indexOf(q) !== -1; }) : fetchedModels;
+      dd.innerHTML = '';
+      if (!matches.length) {
+        dd.innerHTML = '<div class="model-dropdown-empty">No matching models</div>';
+      } else {
+        for (var i = 0; i < matches.length; i++) {
+          var item = document.createElement('div');
+          item.className = 'model-dropdown-item';
+          item.textContent = matches[i];
+          item.setAttribute('data-model-id', matches[i]);
+          dd.appendChild(item);
+        }
+      }
+      var input = document.getElementById('cfg-model');
+      var rect = input.getBoundingClientRect();
+      var vh = window.innerHeight;
+      var spaceBelow = vh - rect.bottom - 8;
+      var spaceAbove = rect.top - 8;
+      var openUp = spaceBelow < 100 && spaceAbove > spaceBelow;
+      var maxH = Math.max(60, Math.min(220, openUp ? spaceAbove : spaceBelow));
+      dd.style.left = rect.left + 'px';
+      dd.style.width = rect.width + 'px';
+      dd.style.maxHeight = maxH + 'px';
+      if (openUp) {
+        dd.style.top = '';
+        dd.style.bottom = (vh - rect.top + 4) + 'px';
+      } else {
+        dd.style.bottom = '';
+        dd.style.top = (rect.bottom + 4) + 'px';
+      }
+      dd.classList.remove('hidden');
+    }
+
+    // Non-chat OpenAI-compatible model ids we don't want cluttering the picker
+    var OPENAI_MODEL_EXCLUDE = /embedding|whisper|tts|dall-e|moderation|davinci-002|babbage|^ada|realtime|audio|image/i;
+
+    async function listModels(provider, apiKey, baseUrl) {
+      baseUrl = (baseUrl || '').replace(/\/+$/, '');
+      if (provider === 'claude') {
+        var cResp = await fetch(baseUrl + '/v1/models', {
+          headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }
+        });
+        if (!cResp.ok) throw new Error('HTTP ' + cResp.status);
+        var cData = await cResp.json();
+        return (cData.data || []).map(function (m) { return m.id; }).sort();
+      }
+      if (provider === 'gemini') {
+        var gResp = await fetch(baseUrl + '/models?key=' + encodeURIComponent(apiKey) + '&pageSize=200');
+        if (!gResp.ok) throw new Error('HTTP ' + gResp.status);
+        var gData = await gResp.json();
+        return (gData.models || [])
+          .filter(function (m) { return m.supportedGenerationMethods && m.supportedGenerationMethods.indexOf('generateContent') !== -1; })
+          .map(function (m) { return m.name.replace(/^models\//, ''); })
+          .sort();
+      }
+      var oResp = await fetch(baseUrl + '/models', { headers: { 'Authorization': 'Bearer ' + apiKey } });
+      if (!oResp.ok) throw new Error('HTTP ' + oResp.status);
+      var oData = await oResp.json();
+      return (oData.data || [])
+        .map(function (m) { return m.id; })
+        .filter(function (id) { return !OPENAI_MODEL_EXCLUDE.test(id); })
+        .sort();
+    }
+
+    async function fetchModels() {
+      var provider = document.getElementById('cfg-provider').value || 'openai';
+      var apiKey = document.getElementById('cfg-apiKey').value.trim();
+      var d = PROVIDER_DEFAULTS[provider] || PROVIDER_DEFAULTS.openai;
+      var baseUrl = document.getElementById('cfg-baseUrl').value.trim() || d.baseUrl;
+      var btn = document.getElementById('fetch-models-btn');
+      var hint = document.getElementById('model-hint');
+      if (!apiKey) { hint.textContent = 'Enter an API key first'; return; }
+      btn.disabled = true; btn.textContent = '…';
+      hint.textContent = 'Fetching models…';
+      try {
+        var ids = await listModels(provider, apiKey, baseUrl);
+        fetchedModels = ids;
+        renderModelDropdown('');
+        hint.textContent = ids.length ? ('Loaded ' + ids.length + ' models — pick from the list') : 'No models returned';
+      } catch (e) {
+        hint.textContent = 'Fetch failed: ' + e.message;
+      }
+      btn.disabled = false; btn.textContent = '↻';
+    }
+
     function openSettings() {
+      var provider = (config && config.provider) || 'openai';
+      document.getElementById('cfg-provider').value = provider;
       document.getElementById('cfg-apiKey').value = (config && config.apiKey) || '';
-      document.getElementById('cfg-baseUrl').value = (config && config.baseUrl) || 'https://api.openai.com/v1';
-      document.getElementById('cfg-model').value = (config && config.model) || 'gpt-4o';
+      var d = PROVIDER_DEFAULTS[provider] || PROVIDER_DEFAULTS.openai;
+      document.getElementById('cfg-baseUrl').value = (config && config.baseUrl) || d.baseUrl;
+      document.getElementById('cfg-model').value = (config && config.model) || d.model;
+      document.getElementById('baseurl-hint').textContent = d.hint;
       document.getElementById('cfg-maxTokens').value = (config && config.maxTokens) || 4096;
       document.getElementById('cfg-temperature').value = (config && config.temperature !== undefined) ? config.temperature : 0.7;
+      fetchedModels = [];
+      hideModelDropdown();
+      document.getElementById('model-hint').innerHTML = '&nbsp;';
       document.getElementById('settings-overlay').classList.remove('hidden');
     }
 
@@ -538,10 +692,13 @@
     }
 
     function doSaveSettings() {
+      var provider = document.getElementById('cfg-provider').value || 'openai';
+      var d = PROVIDER_DEFAULTS[provider] || PROVIDER_DEFAULTS.openai;
       var cfg = {
+        provider: provider,
         apiKey: document.getElementById('cfg-apiKey').value.trim(),
-        baseUrl: document.getElementById('cfg-baseUrl').value.trim() || 'https://api.openai.com/v1',
-        model: document.getElementById('cfg-model').value.trim() || 'gpt-4o',
+        baseUrl: document.getElementById('cfg-baseUrl').value.trim() || d.baseUrl,
+        model: document.getElementById('cfg-model').value.trim() || d.model,
         maxTokens: parseInt(document.getElementById('cfg-maxTokens').value) || 4096,
         temperature: parseFloat(document.getElementById('cfg-temperature').value),
       };
@@ -568,7 +725,7 @@
     function updateModelBadge() {
       var badge = document.getElementById('model-badge');
       if (config && config.model) {
-        badge.textContent = '(' + config.model + ')';
+        badge.textContent = '(' + (config.provider||'openai') + ': ' + config.model + ')';
       } else {
         badge.textContent = '';
       }
@@ -923,6 +1080,14 @@
       } catch(e) { return '{"error":"'+e.message+'"}'; }
     }
 
+    // ==================== MODEL API DISPATCH ====================
+    async function callModel(msgs) {
+      var provider = (config && config.provider) || 'openai';
+      if (provider === 'claude') return callClaude(msgs);
+      if (provider === 'gemini') return callGemini(msgs);
+      return callOpenAI(msgs);
+    }
+
     // ==================== OPENAI API ====================
     async function callOpenAI(msgs) {
       var baseUrl = (config.baseUrl||'https://api.openai.com/v1').replace(/\/+$/,'');
@@ -939,6 +1104,139 @@
       return data;
     }
 
+    // ==================== ANTHROPIC CLAUDE API ====================
+    function toAnthropicMessages(msgs) {
+      var out = [];
+      for (var i=0;i<msgs.length;i++) {
+        var m = msgs[i];
+        if (m.role === 'user') {
+          out.push({role:'user', content:m.content});
+        } else if (m.role === 'assistant') {
+          var blocks = [];
+          if (m.content) blocks.push({type:'text', text:m.content});
+          if (m.tool_calls) {
+            for (var j=0;j<m.tool_calls.length;j++) {
+              var tc = m.tool_calls[j];
+              var input={}; try{input=JSON.parse(tc.function.arguments||'{}');}catch(e){}
+              blocks.push({type:'tool_use', id:tc.id, name:tc.function.name, input:input});
+            }
+          }
+          out.push({role:'assistant', content: blocks.length?blocks:(m.content||'')});
+        } else if (m.role === 'tool') {
+          var block = {type:'tool_result', tool_use_id:m.tool_call_id, content:m.content};
+          var last = out[out.length-1];
+          if (last && last.role==='user' && Array.isArray(last.content)) {
+            last.content.push(block);
+          } else {
+            out.push({role:'user', content:[block]});
+          }
+        }
+      }
+      return out;
+    }
+
+    async function callClaude(msgs) {
+      var baseUrl = (config.baseUrl||'https://api.anthropic.com').replace(/\/+$/,'');
+      var temp = config.temperature!==undefined?config.temperature:0.7;
+      var body = {
+        model: config.model||'claude-sonnet-5',
+        max_tokens: config.maxTokens||4096,
+        temperature: Math.min(temp,1),
+        system: BASE_SYSTEM_PROMPT,
+        messages: toAnthropicMessages(msgs),
+        tools: tools.map(function(t){return {name:t.function.name, description:t.function.description, input_schema:t.function.parameters};})
+      };
+      var resp = await fetch(baseUrl+'/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':config.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify(body)
+      });
+      if(!resp.ok){var t=await resp.text(); throw new Error('API '+resp.status+': '+t.slice(0,300));}
+      var data=await resp.json();
+      if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+      var content=null, toolCalls=[];
+      for (var i=0;i<(data.content||[]).length;i++){
+        var b=data.content[i];
+        if(b.type==='text') content=(content||'')+b.text;
+        else if(b.type==='tool_use') toolCalls.push({id:b.id,type:'function',function:{name:b.name,arguments:JSON.stringify(b.input||{})}});
+      }
+      return {choices:[{message:{content:content, tool_calls:toolCalls.length?toolCalls:undefined}}]};
+    }
+
+    // ==================== GOOGLE GEMINI API ====================
+    function transformSchemaForGemini(schema) {
+      if (!schema || typeof schema !== 'object') return schema;
+      var out = {};
+      for (var k in schema) {
+        if (k === 'type') out.type = String(schema[k]).toUpperCase();
+        else if (k === 'properties') {
+          out.properties = {};
+          for (var p in schema.properties) out.properties[p] = transformSchemaForGemini(schema.properties[p]);
+        }
+        else if (k === 'items') out.items = transformSchemaForGemini(schema.items);
+        else out[k] = schema[k];
+      }
+      return out;
+    }
+
+    function toGeminiContents(msgs) {
+      var out = [];
+      var toolNameById = {};
+      for (var i=0;i<msgs.length;i++) {
+        var m = msgs[i];
+        if (m.role === 'user') {
+          out.push({role:'user', parts:[{text:m.content}]});
+        } else if (m.role === 'assistant') {
+          var parts = [];
+          if (m.content) parts.push({text:m.content});
+          if (m.tool_calls) {
+            for (var j=0;j<m.tool_calls.length;j++) {
+              var tc = m.tool_calls[j];
+              toolNameById[tc.id] = tc.function.name;
+              var args={}; try{args=JSON.parse(tc.function.arguments||'{}');}catch(e){}
+              parts.push({functionCall:{name:tc.function.name, args:args}});
+            }
+          }
+          out.push({role:'model', parts: parts.length?parts:[{text:m.content||''}]});
+        } else if (m.role === 'tool') {
+          var name = toolNameById[m.tool_call_id] || 'unknown';
+          var respObj; try{respObj=JSON.parse(m.content);}catch(e){respObj={result:m.content};}
+          if (respObj===null || typeof respObj!=='object' || Array.isArray(respObj)) respObj={result:respObj};
+          var part = {functionResponse:{name:name, response:respObj}};
+          var last = out[out.length-1];
+          if (last && last.role==='function') last.parts.push(part);
+          else out.push({role:'function', parts:[part]});
+        }
+      }
+      return out;
+    }
+
+    async function callGemini(msgs) {
+      var baseUrl = (config.baseUrl||'https://generativelanguage.googleapis.com/v1beta').replace(/\/+$/,'');
+      var model = config.model||'gemini-2.5-flash';
+      var body = {
+        contents: toGeminiContents(msgs),
+        systemInstruction: {parts:[{text:BASE_SYSTEM_PROMPT}]},
+        tools: [{functionDeclarations: tools.map(function(t){return {name:t.function.name, description:t.function.description, parameters:transformSchemaForGemini(t.function.parameters)};})}],
+        generationConfig: {maxOutputTokens: config.maxTokens||4096, temperature: config.temperature!==undefined?config.temperature:0.7}
+      };
+      var url = baseUrl+'/models/'+encodeURIComponent(model)+':generateContent?key='+encodeURIComponent(config.apiKey);
+      var resp = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      if(!resp.ok){var t=await resp.text(); throw new Error('API '+resp.status+': '+t.slice(0,300));}
+      var data=await resp.json();
+      if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+      var cand = data.candidates && data.candidates[0];
+      if(!cand) throw new Error('No response from Gemini (possibly blocked: '+(data.promptFeedback?JSON.stringify(data.promptFeedback):'unknown')+')');
+      var parts = (cand.content && cand.content.parts) || [];
+      var content=null, toolCalls=[];
+      for (var i=0;i<parts.length;i++){
+        var p=parts[i];
+        if(p.text) content=(content||'')+p.text;
+        else if(p.functionCall) toolCalls.push({id:'call_'+i+'_'+Date.now(),type:'function',function:{name:p.functionCall.name,arguments:JSON.stringify(p.functionCall.args||{})}});
+      }
+      return {choices:[{message:{content:content, tool_calls:toolCalls.length?toolCalls:undefined}}]};
+    }
+
     // ==================== CHAT ====================
     async function sendMessage(userText) {
       if (!userText.trim() || isProcessing) return;
@@ -953,7 +1251,7 @@
       var thinkingEl = showThinking();
       try {
         var maxRounds = 10, round = 0;
-        var response = await callOpenAI(messages);
+        var response = await callModel(messages);
         var allActions = [];
         while (round < maxRounds) {
           var choice = response.choices && response.choices[0];
@@ -970,7 +1268,7 @@
               allActions.push({name:tc.function.name,args:args,result:result});
               messages.push({role:'tool',tool_call_id:tc.id,content:JSON.stringify(result).slice(0,6000)});
             }
-            response=await callOpenAI(messages); round++;
+            response=await callModel(messages); round++;
           } else {
             var finalMsg = {role:'assistant',content:am.content};
             if(am.reasoning_content) finalMsg.reasoning_content = am.reasoning_content;
@@ -1235,6 +1533,10 @@
       var settingsBtn=document.getElementById('settings-btn');
       var settingsSave=document.getElementById('settings-save');
       var settingsCancel=document.getElementById('settings-cancel');
+      var providerSelect=document.getElementById('cfg-provider');
+      var fetchModelsBtn=document.getElementById('fetch-models-btn');
+      var modelInput=document.getElementById('cfg-model');
+      var modelDropdown=document.getElementById('model-dropdown');
       var convSelector=document.getElementById('conv-selector');
       var newConvBtn=document.getElementById('new-conv-btn');
       var convDropdown=document.getElementById('conv-dropdown');
@@ -1248,6 +1550,19 @@
       settingsBtn.addEventListener('click',openSettings);
       settingsSave.addEventListener('click',doSaveSettings);
       settingsCancel.addEventListener('click',closeSettings);
+      providerSelect.addEventListener('change',function(){ applyProviderDefaults(providerSelect.value); });
+      fetchModelsBtn.addEventListener('click',fetchModels);
+      modelInput.addEventListener('input',function(){ renderModelDropdown(modelInput.value); });
+      modelInput.addEventListener('focus',function(){ if(fetchedModels.length) renderModelDropdown(modelInput.value); });
+      modelInput.addEventListener('blur',function(){ setTimeout(hideModelDropdown,150); });
+      modelDropdown.addEventListener('mousedown',function(e){
+        var id = e.target.getAttribute('data-model-id');
+        if(!id) return;
+        e.preventDefault();
+        modelInput.value = id;
+        hideModelDropdown();
+      });
+      document.querySelector('.settings-panel').addEventListener('scroll',hideModelDropdown);
       document.getElementById('settings-overlay').addEventListener('click',function(e){
         if(e.target===this)closeSettings();
       });

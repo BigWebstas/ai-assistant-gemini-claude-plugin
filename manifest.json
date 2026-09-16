@@ -2,9 +2,9 @@
   "name": "AI Assistant",
   "id": "ai-assistant",
   "manifestVersion": 1,
-  "version": "1.7.0",
+  "version": "1.8.0",
   "minSupVersion": "13.0.0",
-  "description": "OpenAI-powered AI assistant that can manage your tasks, projects, and tags via natural language.",
+  "description": "AI assistant (OpenAI, Anthropic Claude, or Google Gemini) that can manage your tasks, projects, and tags via natural language.",
   "author": "Community",
   "hooks": ["taskComplete", "currentTaskChange"],
   "permissions": [

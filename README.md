@@ -1,10 +1,11 @@
 # AI Assistant Plugin for Super Productivity
 
-An OpenAI-powered AI assistant plugin that lets you manage tasks, projects, and tags via natural language chat.
+An AI assistant plugin — powered by OpenAI, Anthropic Claude, or Google Gemini — that lets you manage tasks, projects, and tags via natural language chat.
 
 ## Features
 
 - 🤖 Chat with AI to manage your tasks
+- 🔀 Switch between OpenAI, Claude, and Gemini in Settings
 - 📋 Create, update, delete, complete tasks — single or bulk
 - 📁 Manage projects and tags
 - ⏱️ Start/stop timers, set current task, plan for today
@@ -27,13 +28,22 @@ Click the ⚙️ button in the top-right corner of the plugin panel:
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| API Key | *(required)* | Your OpenAI API key |
-| Base URL | `https://api.openai.com/v1` | OpenAI-compatible endpoint |
-| Model | `gpt-4o` | Model name |
+| Provider | `OpenAI` | `OpenAI`, `Claude`, or `Gemini` — switches API format and fills the fields below |
+| API Key | *(required)* | Key for the selected provider |
+| Base URL | `https://api.openai.com/v1` | Provider API endpoint (auto-filled per provider) |
+| Model | `gpt-4o` | Model name (auto-filled per provider) |
 | Max Tokens | `4096` | Max response tokens |
-| Temperature | `0.7` | Response creativity (0-2) |
+| Temperature | `0.7` | Response creativity (0-2; Claude clamps to 0-1) |
 
-Supports any OpenAI-compatible API (DeepSeek, Claude via proxy, local models, etc.)
+Provider defaults:
+
+| Provider | Base URL | Default Model |
+|----------|----------|---------------|
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o` |
+| Claude | `https://api.anthropic.com` | `claude-sonnet-5` |
+| Gemini | `https://generativelanguage.googleapis.com/v1beta` | `gemini-2.5-flash` |
+
+The OpenAI provider also accepts any OpenAI-compatible API (DeepSeek, local models, etc.) via a custom Base URL.
 
 ## Supported Operations
 
@@ -70,7 +80,7 @@ Supports any OpenAI-compatible API (DeepSeek, Claude via proxy, local models, et
 ```
 ├── manifest.json        # Plugin metadata
 ├── plugin.js            # Background: register buttons/shortcuts
-├── index.html           # Chat UI + OpenAI integration (all inline)
+├── index.html           # Chat UI + OpenAI/Claude/Gemini integration (all inline)
 └── icon.svg             # Plugin icon
 ```
 
@@ -91,7 +101,7 @@ Output: `ai-assistant-plugin.zip` in the project root.
 ## Requirements
 
 - Super Productivity v13.0.0+
-- OpenAI-compatible API key
+- API key for OpenAI, Anthropic Claude, or Google Gemini
 
 ## License
 
